@@ -13,7 +13,7 @@ class Tabelog:
     test_mode=Trueで動作させると、最初のページの３店舗のデータのみを取得できる
     """
 
-    def __init__(self, base_url, test_mode=False, p_ward='東京都内', begin_page=1, end_page=30):
+    def __init__(self, base_url, test_mode=False, p_ward='全国', begin_page=1, end_page=30):
 
         # 変数宣言
         self.store_id = ''
@@ -23,7 +23,7 @@ class Tabelog:
         self.ward = p_ward
         self.review_cnt = 0
         self.review = ''
-        self.columns = ['store_id', 'store_name', 'score', 'ward', 'review_cnt', 'review']
+        self.columns = ['store_id', 'store_name', 'score', 'ward', 'review_count', 'review']
         self.df = pd.DataFrame(columns=self.columns)
         self.__regexcomp = re.compile(r'\n|\s')  # \nは改行、\sは空白
 
@@ -84,12 +84,7 @@ class Tabelog:
 
         soup = BeautifulSoup(r.content, 'html.parser')
 
-        # 店舗名称取得
-        # <h2 class="display-name">
-        #     <span>
-        #         麺匠　竹虎 新宿店
-        #     </span>
-        # </h2>
+
         store_name_tag = soup.find('h2', class_='display-name')
         store_name = store_name_tag.span.string
         print('{}→店名：{}'.format(self.store_id_num, store_name.strip()), end='')
@@ -101,10 +96,10 @@ class Tabelog:
         store_head_list = store_head_list[1].find_all('span')
         # print('ターゲット：', store_head_list[0].text)
 
-        if store_head_list[0].text not in {'ラーメン', 'つけ麺'}:
-            print('ラーメンorつけ麺のお店ではないので処理対象外')
-            self.store_id_num -= 1
-            return
+        # if store_head_list[0].text not in {'ラーメン', 'つけ麺'}:
+        #     print('ラーメンorつけ麺のお店ではないので処理対象外')
+        #     self.store_id_num -= 1
+        #     return
 
         # 評価点数取得
         # <b class="c-rating__val rdheader-rating__score-val" rel="v:rating">
@@ -120,11 +115,7 @@ class Tabelog:
             print('  評価がないため処理対象外')
             self.store_id_num -= 1
             return
-        # 評価が3.5未満店舗は除外
-        if float(rating_score) < 3.5:
-            print('  食べログ評価が3.5未満のため処理対象外')
-            self.store_id_num -= 1
-            return
+
 
         # レビュー一覧URL取得
         # <a class="mainnavi" href="https://tabelog.com/tokyo/A1304/A130401/13143442/dtlrvwlst/"><span>口コミ</span><span class="rstdtl-navi__total-count"><em>60</em></span></a>
@@ -212,12 +203,52 @@ class Tabelog:
         return
 
     def make_df(self):
-        self.store_id = str(self.store_id_num).zfill(8)  # 0パディング
+        self.store_id = str(self.store_id_num).zfill(8)
         se = pd.Series([self.store_id, self.store_name, self.score, self.ward, self.review_cnt, self.review],
-                       self.columns)  # 行を作成
-        self.df = self.df.append(se, self.columns)  # データフレームに行を追加
-        return
+                       self.columns)
+        if self.df.empty:
+            self.df = pd.DataFrame([se], columns=self.columns)
+        else:
+            self.df = self.df.append(se, ignore_index=True)
 
-tokyo_ramen_review = Tabelog(base_url="https://tabelog.com/tokyo/rstLst/ramen/",test_mode=False, p_ward='東京都内')
-#CSV保存
-tokyo_ramen_review.df.to_csv("../output/tokyo_ramen_review.csv")
+    def group_by_score(self):
+        grouped = self.df.groupby(pd.cut(self.df['score'], [1, 2, 3, 4, 5], right=False))
+        for name, group in grouped:
+            print(f"평점대 {name}:")
+            for _, row in group.iterrows():
+                print(f"{row['store_name']} - 평점: {row['score']}")
+
+    def save_to_json(self, file_name):
+        self.df.to_json(file_name, orient='records', force_ascii=False)
+
+    def filter_by_score(self, min_score):
+        filtered_df = self.df[self.df['score'] >= min_score]
+        return filtered_df
+
+    def search_by_score(self, min_score):
+        filtered_df = self.filter_by_score(min_score)
+        return filtered_df
+
+    def scrape_with_retry(self, url, retries=3):
+        for _ in range(retries):
+            try:
+                r = requests.get(url, timeout=10)
+                if r.status_code == requests.codes.ok:
+                    return r
+            except requests.RequestException as e:
+                print(f"Request failed: {e}")
+            time.sleep(3)
+        return None
+if __name__ == "__main__":
+    tokyo_food_review = Tabelog(
+    base_url="https://tabelog.com/rstLst/?vs=1&sa=&sk=&lid=top_navi1&vac_net=&svd=20231029&svt=1900&svps=2&hfc=1&sw=",
+    test_mode=False, p_ward='日本全国')
+    tokyo_food_review.group_by_score()  # 별점대로 그룹화하여 콘솔에 출력
+    tokyo_food_review.save_to_json("tabelog_data.json")  # JSON 파일로 저장
+
+
+
+
+
+
+
