@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import json
+
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -108,6 +110,7 @@ class Tabelog:
         rating_score_tag = soup.find('b', class_='c-rating__val')
         rating_score = rating_score_tag.span.string
         print('  評価点数：{}点'.format(rating_score), end='')
+        rating_score = float(rating_score) if rating_score != '-' else 0.0  # 평가 점수를 숫자로 변환
         self.score = rating_score
 
         # 評価点数が存在しない店舗は除外
@@ -205,21 +208,27 @@ class Tabelog:
     def make_df(self):
         self.store_id = str(self.store_id_num).zfill(8)
         se = pd.Series([self.store_id, self.store_name, self.score, self.ward, self.review_cnt, self.review],
-                       self.columns)
-        if self.df.empty:
-            self.df = pd.DataFrame([se], columns=self.columns)
-        else:
-            self.df = self.df.append(se, ignore_index=True)
+                       index=self.columns)
+        self.df = self.df.append(se, ignore_index=True)
+
+
 
     def group_by_score(self):
-        grouped = self.df.groupby(pd.cut(self.df['score'], [1, 2, 3, 4, 5], right=False))
+        # grouped = self.df.groupby(pd.cut(self.df['score'], [1, 2, 3, 4, 5], right=False, include_lowest=True))
+        grouped = self.df.groupby(pd.cut(self.df['score'], bins=[1, 2, 3, 4, 5], right=False, include_lowest=True,
+                                         labels=['[1, 2)', '[2, 3)', '[3, 4)', '[4, 5)']))
+
         for name, group in grouped:
             print(f"평점대 {name}:")
             for _, row in group.iterrows():
                 print(f"{row['store_name']} - 평점: {row['score']}")
 
     def save_to_json(self, file_name):
-        self.df.to_json(file_name, orient='records', force_ascii=False)
+        try:
+            self.df.to_json(file_name, orient='records', force_ascii=False)
+            print("데이터를 JSON 파일로 저장했습니다.")
+        except Exception as e:
+            print(f"데이터를 저장하는 중에 오류가 발생했습니다: {e}")
 
     def filter_by_score(self, min_score):
         filtered_df = self.df[self.df['score'] >= min_score]
@@ -239,16 +248,23 @@ class Tabelog:
                 print(f"Request failed: {e}")
             time.sleep(3)
         return None
+
+
 if __name__ == "__main__":
     tokyo_food_review = Tabelog(
-    base_url="https://tabelog.com/rstLst/?vs=1&sa=&sk=&lid=top_navi1&vac_net=&svd=20231029&svt=1900&svps=2&hfc=1&sw=",
-    test_mode=False, p_ward='日本全国')
-    tokyo_food_review.group_by_score()  # 별점대로 그룹화하여 콘솔에 출력
-    tokyo_food_review.save_to_json("tabelog_data.json")  # JSON 파일로 저장
+        base_url="https://tabelog.com/rstLst/?vs=1&sa=&sk=&lid=top_navi1&vac_net=&svd=20231029&svt=1900&svps=2&hfc=1&sw=",
+        test_mode=False, p_ward='日本全国')
 
+    # 데이터가 DataFrame에 제대로 로드되었는지 확인하고, JSON 파일로 저장할 수 있습니다.
+    if not tokyo_food_review.df.empty:
+        print("데이터가 올바르게 DataFrame에 로드되었습니다.")
+        print("DataFrame 내용:")
+        print(tokyo_food_review.df.head())  # 데이터 확인
 
-
-
-
-
-
+        # JSON 파일로 저장
+        try:
+            tokyo_food_review.save_to_json('tabelog_data.json')  # 'tabelog_data.json' 파일에 데이터 저장
+        except Exception as e:
+            print(f"JSON 파일로 데이터를 저장하는 중에 오류가 발생했습니다: {e}")
+    else:
+        print("데이터를 로드하지 못했거나 DataFrame이 비어 있습니다.")

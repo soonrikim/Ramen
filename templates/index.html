@@ -1,39 +1,34 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html>
 <head>
     <title>Tabelog Stores</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script>
-    $(document).ready(function() {
-        $("#score-4").click(function() {
-            getStoresByRating(4);
-        });
-
-        $("#score-3").click(function() {
-            getStoresByRating(3);
-        });
-
-        $("#score-2").click(function() {
-            getStoresByRating(2);
-        });
-
-        function getStoresByRating(rating) {
-            $.get(`/get_stores_by_rating/${rating}/`, function(data) {
-                // 여기서 데이터를 받아 처리
-                var parsedData = JSON.parse(data); // JSON 파싱
-                console.log(parsedData);
-                // 이제 이 데이터를 화면에 표시하는 방법을 구현
-                $('#store-list').empty(); // 이전 목록을 비움
-                parsedData.forEach(function(store) {
-                    $('#store-list').append(`<p>${store.store_name} - Score: ${store.score}</p>`);
-                });
+    <script>
+        $(document).ready(function() {
+            $("#score-4").click(function() {
+                getStoresByRating(4);
             });
-        }
-    });
-</script>
 
+            $("#score-3").click(function() {
+                getStoresByRating(3);
+            });
 
+            $("#score-2").click(function() {
+                getStoresByRating(2);
+            });
+
+            function getStoresByRating(rating) {
+                $.get(`/get_stores_by_rating/${rating}/`, function(data) {
+                    var parsedData = data;
+                    console.log(parsedData);
+                    $('#store-list').empty();
+                    parsedData.forEach(function(store) {
+                        $('#store-list').append(`<p>${store.store_name} - Score: ${store.score}</p>`);
+                    });
+                });
+            }
+        });
+    </script>
 </head>
 <body>
     <h1>Tabelog Stores</h1>
@@ -41,7 +36,7 @@
     <button id="score-3">별점 3점대</button>
     <button id="score-2">별점 2점대</button>
     <div id="store-list">
-        <!-- 여기에 가게 목록을 표시 -->
+        <!-- 가게 목록을 표시할 위치 -->
     </div>
 </body>
 </html>
