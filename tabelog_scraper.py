@@ -7,6 +7,7 @@ import re
 import pandas as pd
 import time
 
+raw_data = []
 
 
 class Tabelog:
@@ -15,7 +16,7 @@ class Tabelog:
     test_mode=Trueで動作させると、最初のページの３店舗のデータのみを取得できる
     """
 
-    def __init__(self, base_url, test_mode=False, p_ward='全国', begin_page=1, end_page=30):
+    def __init__(self, base_url, test_mode=False, p_ward='全国', begin_page=1, end_page=3):
 
         # 変数宣言
         self.store_id = ''
@@ -25,10 +26,9 @@ class Tabelog:
         self.ward = p_ward
         self.review_cnt = 0
         self.review = ''
-        self.columns = ['store_id', 'store_name', 'score', 'ward', 'review_count', 'review']
+        self.columns = ['store_id', 'store_name', 'score', 'ward', 'review_cnt', 'review']
         self.df = pd.DataFrame(columns=self.columns)
         self.__regexcomp = re.compile(r'\n|\s')  # \nは改行、\sは空白
-
         page_num = begin_page  # 店舗一覧ページ番号
 
         if test_mode:
@@ -85,7 +85,6 @@ class Tabelog:
             return
 
         soup = BeautifulSoup(r.content, 'html.parser')
-
 
         store_name_tag = soup.find('h2', class_='display-name')
         store_name = store_name_tag.span.string
@@ -149,6 +148,8 @@ class Tabelog:
         process_time = time.time() - start
         print('  取得時間：{}'.format(process_time))
 
+        raw = [store_name.strip(), self.store_id_num, rating_score, self.ward, self.review_cnt, review_tag]
+        raw_data.append(raw)
         return
 
     def scrape_review(self, review_url):
@@ -211,8 +212,6 @@ class Tabelog:
                        index=self.columns)
         self.df = self.df.append(se, ignore_index=True)
 
-
-
     def group_by_score(self):
         # grouped = self.df.groupby(pd.cut(self.df['score'], [1, 2, 3, 4, 5], right=False, include_lowest=True))
         grouped = self.df.groupby(pd.cut(self.df['score'], bins=[1, 2, 3, 4, 5], right=False, include_lowest=True,
@@ -223,9 +222,12 @@ class Tabelog:
             for _, row in group.iterrows():
                 print(f"{row['store_name']} - 평점: {row['score']}")
 
+
     def save_to_json(self, file_name):
+        df = pd.DataFrame(raw_data,
+                          columns=['store_name', 'store_name_id_num', 'score', 'ward', 'review_count', 'review'])
         try:
-            self.df.to_json(file_name, orient='records', force_ascii=False)
+            df.to_json(file_name, orient='records', force_ascii=False)
             print("데이터를 JSON 파일로 저장했습니다.")
         except Exception as e:
             print(f"데이터를 저장하는 중에 오류가 발생했습니다: {e}")
@@ -246,25 +248,25 @@ class Tabelog:
                     return r
             except requests.RequestException as e:
                 print(f"Request failed: {e}")
-            time.sleep(3)
+            time.sleep(1)
         return None
 
 
 if __name__ == "__main__":
     tokyo_food_review = Tabelog(
-        base_url="https://tabelog.com/rstLst/?vs=1&sa=&sk=&lid=top_navi1&vac_net=&svd=20231029&svt=1900&svps=2&hfc=1&sw=",
+        base_url="https://tabelog.com/rstLst/?Srt=D&SrtT=rvcn&svd=20231105&svt=1900&svps=2",
         test_mode=False, p_ward='日本全国')
-
     # 데이터가 DataFrame에 제대로 로드되었는지 확인하고, JSON 파일로 저장할 수 있습니다.
-    if not tokyo_food_review.df.empty:
+    if not raw_data:
+        print("Array is empty")
+    else:
         print("데이터가 올바르게 DataFrame에 로드되었습니다.")
         print("DataFrame 내용:")
-        print(tokyo_food_review.df.head())  # 데이터 확인
+        print(raw_data)  # 데이터 확인
 
         # JSON 파일로 저장
         try:
             tokyo_food_review.save_to_json('tabelog_data.json')  # 'tabelog_data.json' 파일에 데이터 저장
         except Exception as e:
             print(f"JSON 파일로 데이터를 저장하는 중에 오류가 발생했습니다: {e}")
-    else:
-        print("데이터를 로드하지 못했거나 DataFrame이 비어 있습니다.")
+

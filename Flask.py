@@ -1,13 +1,7 @@
 from flask import Flask, render_template, request, redirect, jsonify
 import json
 app = Flask(__name__, template_folder='templates')
-store_data = [
-    {'id': 1, 'store_name': '평점4점대', 'score': 4, 'review_cnt': 120},
-    {'id': 2, 'store_name': '평점3점대', 'score': 3, 'review_cnt': 95},
-    {'id': 3, 'store_name': '평점2점대', 'score': 2, 'review_cnt': 150}
-]
-with open('tabelog_data.json', 'r', encoding='utf-8') as file:
-    store_data = json.load(file)
+
 
 # JSON 파일에서 데이터 로드
 def load_data_from_json(file_name):
@@ -31,15 +25,27 @@ def read(id):
     return "Store not found", 404
 
 
+
 @app.route('/get_stores_by_rating/<int:rating>/', methods=['GET'])
 def get_stores_by_rating(rating):
-    filtered_stores = [store for store in store_data if store['score'] >= rating]
+    # 점수가 지정된 범위 내에 있는지 확인하여 필터링합니다.
+    if rating == 4:
+        filtered_stores = [store for store in store_data if 4 <= store['score'] < 5]
+    elif rating == 3:
+        filtered_stores = [store for store in store_data if 3 <= store['score'] < 4]
+    elif rating == 2:
+        filtered_stores = [store for store in store_data if 2 <= store['score'] < 3]
+    else:
+        filtered_stores = []
+
     return jsonify(filtered_stores)
+
 
 
 @app.route('/get_all_stores/', methods=['GET'])
 def get_all_stores():
-    return json.dumps(store_data)
+    return jsonify(store_data)
+
 
 
 if __name__ == '__main__':

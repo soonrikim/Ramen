@@ -2,7 +2,7 @@ from tabelog_scraper import Tabelog
 import json
 
 # Tabelog 클래스의 인스턴스 생성
-tokyo_food_review = Tabelog(base_url="https://tabelog.com/rstLst/?vs=1&sa=&sk=&lid=top_navi1&vac_net=&svd=20231029&svt=1900&svps=2&hfc=1&sw=", test_mode=False, p_ward='일본 전체')
+tokyo_food_review = Tabelog(base_url="https://tabelog.com/rstLst/?Srt=D&SrtT=rvcn&svd=20231105&svt=1900&svps=2", test_mode=False, p_ward='日本全体')
 
 # 별점에 따라 그룹화하여 출력
 tokyo_food_review.group_by_score()
