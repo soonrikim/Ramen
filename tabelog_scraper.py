@@ -46,6 +46,8 @@ class Tabelog:
                 page_num += 1
         return
 
+
+
     def scrape_list(self, list_url, mode):
         """
         店舗一覧ページのパーシング
@@ -72,6 +74,7 @@ class Tabelog:
                 self.scrape_item(item_url, mode)
 
         return True
+    
 
     def scrape_item(self, item_url, mode):
         """
@@ -254,7 +257,7 @@ class Tabelog:
 
 if __name__ == "__main__":
     tokyo_food_review = Tabelog(
-        base_url="https://tabelog.com/rstLst/?Srt=D&SrtT=rvcn&svd=20231105&svt=1900&svps=2",
+        base_url="https://tabelog.com/rstLst/cond03-02-00/?SrtT=rvcn&LstSmoking=3&svd=20231107&svt=1900&svps=2&select_sort_flg=1&Srt=D",
         test_mode=False, p_ward='日本全国')
     # 데이터가 DataFrame에 제대로 로드되었는지 확인하고, JSON 파일로 저장할 수 있습니다.
     if not raw_data:

@@ -3,6 +3,32 @@
 <head>
     <title>Tabelog Stores</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+      <style>
+        /* 헤더 스타일 */
+        header {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* 버튼 그룹 스타일 */
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px; /* 버튼 사이 간격 */
+            margin-top: 10px;
+        }
+
+        /* 가게 목록 스타일 */
+        #store-list {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        /* 버튼 스타일 */
+        button {
+            margin: 5px;
+        }
+    </style>
     <script>
         $(document).ready(function() {
             $("#score-4").click(function() {
@@ -34,7 +60,6 @@
     <h1>Tabelog Stores</h1>
     <button id="score-4">별점 4점대</button>
     <button id="score-3">별점 3점대</button>
-    <button id="score-2">별점 2점대</button>
     <div id="store-list">
         <!-- 가게 목록을 표시할 위치 -->
     </div>
