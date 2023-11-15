@@ -99,6 +99,8 @@ class Tabelog:
         if mode:
             i = 0
             for soup_a in soup_a_list[:2]:
+                if i > 20:
+                    i = 0
                 item_url = soup_a.get('href')  # 店の個別ページURLを取得
                 self.store_id_num += 1
                 self.scrape_item(item_url, mode, i)
@@ -106,6 +108,8 @@ class Tabelog:
         else:
             i = 0
             for soup_a in soup_a_list:
+                if i > 20:
+                    i = 0
                 item_url = soup_a.get('href')  # 店の個別ページURLを取得
                 self.store_id_num += 1
                 self.scrape_item(item_url, mode, i)
