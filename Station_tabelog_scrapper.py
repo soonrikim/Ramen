@@ -9,9 +9,9 @@ import time
 
 raw_data = []
 
-def Station_name_extractor(i):
+def Station_name_extractor(i, j):
         idx = 0
-        url = "https://tabelog.com/tokyo/R9/rstLst/RC21/?popular_spot_id=&sk=%7Bsearch_query%7D"
+        url = "https://tabelog.com/tokyo/R9/rstLst/RC21/"+str(j)+"/?popular_spot_id=&sk=%7Bsearch_query%7D"
         response = requests.get(url)
         html = response.text
         soup = BeautifulSoup(html, 'html.parser')
@@ -96,28 +96,33 @@ class Tabelog:
         if len(soup_a_list) == 0:
             return False
 
+        i = 0
+        j = 1
         if mode:
-            i = 0
             for soup_a in soup_a_list[:2]:
-                if i > 20:
-                    i = 0
+                if i>20:
+                    i=0
+                    j+=1
+                elif j>60:
+                    j=0
                 item_url = soup_a.get('href')  # 店の個別ページURLを取得
                 self.store_id_num += 1
-                self.scrape_item(item_url, mode, i)
+                self.scrape_item(item_url, mode, i, j)
                 i+=1
         else:
-            i = 0
             for soup_a in soup_a_list:
-                if i > 20:
-                    i = 0
+                if i>20:
+                    i=0
+                    j+=1
+                elif j>60:
+                    j=0
                 item_url = soup_a.get('href')  # 店の個別ページURLを取得
                 self.store_id_num += 1
-                self.scrape_item(item_url, mode, i)
+                self.scrape_item(item_url, mode, i, j)
                 i+=1
-
         return True
 
-    def scrape_item(self, item_url, mode, count):
+    def scrape_item(self, item_url, mode, count, page):
         """
         個別店舗情報ページのパーシング
         """
@@ -191,7 +196,7 @@ class Tabelog:
         process_time = time.time() - start
         print('  取得時間：{}'.format(process_time))
 
-        print(' Station : {}'.format(Station_name_extractor(count)))
+        print(' Station : {}'.format(Station_name_extractor(count, page)))
 
         raw = [store_name.strip(), self.store_id_num, rating_score, self.ward, self.review_cnt, review_tag]
         raw_data.append(raw)
