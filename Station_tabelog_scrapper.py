@@ -9,10 +9,6 @@ import time
 
 raw_data = []
 
-def Station_counter():
-    i = 0
-    return i
-
 def Station_name_extractor(i):
         idx = 0
         url = "https://tabelog.com/tokyo/R9/rstLst/RC21/?popular_spot_id=&sk=%7Bsearch_query%7D"
