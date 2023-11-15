@@ -100,7 +100,7 @@ class Tabelog:
         j = 1
         if mode:
             for soup_a in soup_a_list[:2]:
-                if i>20:
+                if i>19:
                     i=0
                     j+=1
                 elif j>60:
@@ -111,7 +111,7 @@ class Tabelog:
                 i+=1
         else:
             for soup_a in soup_a_list:
-                if i>20:
+                if i>19:
                     i=0
                     j+=1
                 elif j>60:
