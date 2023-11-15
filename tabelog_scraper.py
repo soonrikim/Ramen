@@ -16,9 +16,12 @@ class Tabelog:
     test_mode=Trueで動作させると、最初のページの３店舗のデータのみを取得できる
     """
 
-    def __init__(self, base_url, test_mode=False, p_ward='全国', begin_page=1, end_page=3):
+    def __init__(self, base_url, test_mode=False, p_ward='', p_category='', begin_page=1, end_page=3):
 
         # 変数宣言
+        self.base_url = base_url
+        self.p_ward = p_ward  # 역을 지정하는 매개변수
+        self.p_category = p_category
         self.store_id = ''
         self.store_id_num = 0
         self.store_name = ''
@@ -45,6 +48,28 @@ class Tabelog:
                     break
                 page_num += 1
         return
+
+    def extract_station_name(html):
+        soup = BeautifulSoup(html, 'html.parser')
+        station_info = soup.find('div', class_='list-rst__area-genre cpy-area-genre')
+        if station_info:
+            return station_info.text.strip()  # 역 이름과 추가 정보 추출
+        return "역 정보 없음"
+
+    # 웹 페이지 URL
+    url = 'https://tabelog.com/tokyo/R9/rstLst/RC21/?popular_spot_id=&sk=%7Bsearch_query%7D'
+
+    # 웹 페이지에서 HTML 가져오기
+    response = requests.get(url)
+    html_content = response.text
+
+    # BeautifulSoup 객체 생성
+    soup = BeautifulSoup(html_content, 'html.parser')
+
+    # 각 식당 정보 추출
+    for restaurant in soup.find_all('div', class_='list-rst__rst-name'):  # 식당 이름이 포함된 div 태그
+        station_name = extract_station_name(str(restaurant))
+        # 나머지 정보 추출 및 출력
 
     def scrape_list(self, list_url, mode):
         """
@@ -117,7 +142,6 @@ class Tabelog:
             print('  評価がないため処理対象外')
             self.store_id_num -= 1
             return
-
 
         # レビュー一覧URL取得
         # <a class="mainnavi" href="https://tabelog.com/tokyo/A1304/A130401/13143442/dtlrvwlst/"><span>口コミ</span><span class="rstdtl-navi__total-count"><em>60</em></span></a>
@@ -222,7 +246,6 @@ class Tabelog:
             for _, row in group.iterrows():
                 print(f"{row['store_name']} - 평점: {row['score']}")
 
-
     def save_to_json(self, file_name):
         df = pd.DataFrame(raw_data,
                           columns=['store_name', 'store_name_id_num', 'score', 'ward', 'review_count', 'review'])
@@ -253,20 +276,25 @@ class Tabelog:
 
 
 if __name__ == "__main__":
-    tokyo_food_review = Tabelog(
-        base_url="https://tabelog.com/rstLst/?Srt=D&SrtT=rvcn&svd=20231105&svt=1900&svps=2",
-        test_mode=False, p_ward='日本全国')
-    # 데이터가 DataFrame에 제대로 로드되었는지 확인하고, JSON 파일로 저장할 수 있습니다.
-    if not raw_data:
-        print("Array is empty")
-    else:
-        print("데이터가 올바르게 DataFrame에 로드되었습니다.")
-        print("DataFrame 내용:")
-        print(raw_data)  # 데이터 확인
+    # 크롤링할 역 이름 목록
+    stations = ['神泉駅', '渋谷駅', '恵比寿駅', '代官山駅']  # 예시 역 이름들
 
-        # JSON 파일로 저장
-        try:
-            tokyo_food_review.save_to_json('tabelog_data.json')  # 'tabelog_data.json' 파일에 데이터 저장
-        except Exception as e:
-            print(f"JSON 파일로 데이터를 저장하는 중에 오류가 발생했습니다: {e}")
+    for station in stations:
+        print(f"{station}에 대한 크롤링을 시작합니다.")
+        tabelog_scraper = Tabelog(
+            base_url="https://tabelog.com/tokyo/R9/rstLst/RC21/?popular_spot_id=&sk=%7Bsearch_query%7D",
+            test_mode=False, p_ward=station)
 
+        # 데이터가 DataFrame에 제대로 로드되었는지 확인하고, JSON 파일로 저장할 수 있습니다.
+        if not raw_data:
+            print(f"{station}: Array is empty")
+        else:
+            print(f"{station}: 데이터가 올바르게 DataFrame에 로드되었습니다.")
+            print(f"{station}: DataFrame 내용:")
+            print(raw_data)  # 데이터 확인
+
+            # JSON 파일로 저장
+            try:
+                tabelog_scraper.save_to_json(f'tabelog_data_{station}.json')  # 각 역별로 파일 저장
+            except Exception as e:
+                print(f"{station}: JSON 파일로 데이터를 저장하는 중에 오류가 발생했습니다: {e}")
