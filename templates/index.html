@@ -3,30 +3,6 @@
 <head>
     <title>Tabelog Stores</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-      <style>
-       
-        header {
-            text-align: center;
-            margin-top: 10px;
-        }
-
-        .button-group {
-            display: flex;
-            justify-content: center;
-            gap: 10px; 
-            margin-top: 10px;
-        }
-
-        #store-list {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-       
-        button {
-            margin: 5px;
-        }
-    </style>
     <script>
         $(document).ready(function() {
             $("#score-4").click(function() {
@@ -55,9 +31,14 @@
     </script>
 </head>
 <body>
-    <h1>Tabelog Stores</h1>
-    <button id="score-4">별점 4점대</button>
-    <button id="score-3">별점 3점대</button>
+     <h1>Tabelog Stores</h1>
+    <select id="station-select">
+        <option value="新宿">新宿</option>
+        <option value="新大久保">新大久保</option>
+        <option value="荻窪">荻窪</option>
+        <option value="品川">品川</option>
+    </select>
+    <button id="search-button">검색</button>
     <div id="store-list">
         <!-- 가게 목록을 표시할 위치 -->
     </div>
