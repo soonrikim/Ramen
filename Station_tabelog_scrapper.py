@@ -67,13 +67,6 @@ class Tabelog:
                 page_num += 1
         return
 
-    def extract_station_name(html):
-        soup = BeautifulSoup(html, 'html.parser')
-        station_info = soup.find('div', class_='list-rst__area-genre cpy-area-genre')
-        if station_info:
-            return station_info.text.strip().split(" ")[0]  # 역 이름과 추가 정보 추출
-        return "역 정보 없음"
-
 
     # 웹 페이지 URL
     url = 'https://tabelog.com/tokyo/R9/rstLst/RC21/?popular_spot_id=&sk=%7Bsearch_query%7D'
