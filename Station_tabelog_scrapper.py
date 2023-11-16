@@ -9,15 +9,23 @@ import time
 
 raw_data = []
 
-def Station_name_extractor(i, j):
-        idx = 0
-        url = "https://tabelog.com/tokyo/R9/rstLst/RC21/"+str(j)+"/?popular_spot_id=&sk=%7Bsearch_query%7D"
-        response = requests.get(url)
-        html = response.text
-        soup = BeautifulSoup(html, 'html.parser')
+'''
+[Update 내용]
+1. Base URL을 통해 다음 페이지로 넘어가려는 코드에서 page_num 파라미터 값이 이상한 위치에 들어가 페이지가 넘어가지 않는 현상
+        -> Base URL 값을 page_num 으로 넘길 수 있도록 변경
+2. 기존에 count 함수로 역 이름을 각 페이지마다 크롤링 하려했으나 넘어가지도 않고 느려지는 현상
+        -> __init__ 함수에서 page_num 을 통해 넘어가는 것을 확인하여 page_num 을 매개변수로 전달해 scrape_list() -> scrape_item() 으로 가져와 크롤링
+        -> 기존 함수의 기능은 scrap_item() 으로 가져와 수행
 
-        station_info = soup.find_all('div', class_='list-rst__area-genre cpy-area-genre')
-        return station_info[i].text.strip().split(" ")[0]
+
+[추가 요구사항]
+1. end_page 값은 3이던데 60까지 바꾸면 파싱해오는 작업 될거에요!
+2. end_page 를 만나면 크롤링 작업 중단을 해줘야 할 것같습니다.
+
+처음부터 코드 디버깅을 해 보니 가까운 곳에 답이 있었네요ㅠㅠ
+고생하셨습니다!!
+'''
+
 
 class Tabelog:
     """
@@ -44,13 +52,13 @@ class Tabelog:
         page_num = begin_page  # 店舗一覧ページ番号
 
         if test_mode:
-            list_url = base_url + str(page_num) + '/?Srt=D&SrtT=rt&sort_mode=1'  # 食べログの点数ランキングでソートする際に必要な処理
+            list_url = base_url + str(page_num) +'/?popular_spot_id=&sk=%7Bsearch_query%7D/?Srt=D&SrtT=rt&sort_mode=1'  # 食べログの点数ランキングでソートする際に必要な処理
             self.scrape_list(list_url, mode=test_mode)
         else:
             while True:
-                list_url = base_url + str(page_num) + '/?Srt=D&SrtT=rt&sort_mode=1'  # 食べログの点数ランキングでソートする際に必要な処理
+                list_url = base_url + str(page_num) + '/?popular_spot_id=&sk=%7Bsearch_query%7D/?Srt=D&SrtT=rt&sort_mode=1'  # 食べログの点数ランキングでソートする際に必要な処理
                 if self.scrape_list(list_url, mode=test_mode) != True:
-                    counter_num += 1
+                    page_num += 1
                     break
 
                 # INパラメータまでのページ数データを取得する
@@ -86,6 +94,7 @@ class Tabelog:
         """
         店舗一覧ページのパーシング
         """
+        i = 0
         r = requests.get(list_url)
         if r.status_code != requests.codes.ok:
             return False
@@ -96,44 +105,38 @@ class Tabelog:
         if len(soup_a_list) == 0:
             return False
 
-        i = 0
-        j = 1
         if mode:
             for soup_a in soup_a_list[:2]:
                 if i>19:
                     i=0
-                    j+=1
-                elif j>60:
-                    j=0
                 item_url = soup_a.get('href')  # 店の個別ページURLを取得
                 self.store_id_num += 1
-                self.scrape_item(item_url, mode, i, j)
+                self.scrape_item(r, item_url, mode, i)
                 i+=1
         else:
             for soup_a in soup_a_list:
                 if i>19:
                     i=0
-                    j+=1
-                elif j>60:
-                    j=0
                 item_url = soup_a.get('href')  # 店の個別ページURLを取得
                 self.store_id_num += 1
-                self.scrape_item(item_url, mode, i, j)
+                self.scrape_item(r, item_url, mode, i)
                 i+=1
         return True
 
-    def scrape_item(self, item_url, mode, count, page):
+
+    def scrape_item(self, eli_station, item_url, mode, count):
         """
         個別店舗情報ページのパーシング
         """
         start = time.time()
 
         r = requests.get(item_url)
+        html = r.text
         if r.status_code != requests.codes.ok:
             print(f'error:not found{item_url}')
             return
 
-        soup = BeautifulSoup(r.content, 'html.parser')
+        soup = BeautifulSoup(html, 'html.parser')
 
         store_name_tag = soup.find('h2', class_='display-name')
         store_name = store_name_tag.span.string
@@ -196,7 +199,10 @@ class Tabelog:
         process_time = time.time() - start
         print('  取得時間：{}'.format(process_time))
 
-        print(' Station : {}'.format(Station_name_extractor(count, page)))
+        s_info = BeautifulSoup(eli_station.text, 'html.parser')
+        station_info = s_info.find_all('div', class_='list-rst__area-genre cpy-area-genre')
+
+        print(' Station : {}'.format(station_info[count].text.strip().split(" ")[0]))
 
         raw = [store_name.strip(), self.store_id_num, rating_score, self.ward, self.review_cnt, review_tag]
         raw_data.append(raw)
@@ -309,7 +315,7 @@ if __name__ == "__main__":
     for station in stations:
         print(f"{station}에 대한 크롤링을 시작합니다.")
         tabelog_scraper = Tabelog(
-            base_url="https://tabelog.com/tokyo/R9/rstLst/RC21/?popular_spot_id=&sk=%7Bsearch_query%7D",
+            base_url="https://tabelog.com/tokyo/R9/rstLst/RC21/",
             test_mode=False, p_ward=station)
 
         # 데이터가 DataFrame에 제대로 로드되었는지 확인하고, JSON 파일로 저장할 수 있습니다.
