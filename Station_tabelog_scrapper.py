@@ -10,6 +10,7 @@ import time
 raw_data = []
 
 
+
 class Tabelog:
     """
     食べログスクレイピングクラス
@@ -18,7 +19,7 @@ class Tabelog:
 
     def __init__(self, base_url, test_mode=False, p_ward='', p_category='', begin_page=1, end_page=3):
         # 変数宣言
-        self.raw_data = []
+        #self.raw_data = []
         self.base_url = base_url
         self.p_ward = p_ward  # 역을 지정하는 매개변수
         self.p_category = p_category
@@ -180,8 +181,8 @@ class Tabelog:
         s_info = BeautifulSoup(eli_station.text, 'html.parser')
         station_info = s_info.find_all('div', class_='list-rst__area-genre cpy-area-genre')
         print(' Station : {}'.format(station_info[count].text.strip().split(" ")[0]))
-        station = station_info[count].text.strip().split(" ")[0]
-        raw = [store_name.strip(), self.store_id_num, rating_score, self.ward, self.review_cnt, review_tag, station]
+        self.ward = station_info[count].text.strip().split(" ")[0]
+        raw = [store_name.strip(), self.store_id_num, rating_score, self.ward, self.review_cnt, review_tag]
         raw_data.append(raw)
         return
 
@@ -205,34 +206,6 @@ class Tabelog:
                 self.get_review_text(review_detail_url)
         return True
 
-    def get_review_text(self, review_detail_url):
-        """
-        口コミ詳細ページをパーシング
-        """
-        r = requests.get(review_detail_url)
-        if r.status_code != requests.codes.ok:
-            print(f'error:not found{review_detail_url}')
-            return
-
-        # ２回以上来訪してコメントしているユーザは最新の1件のみを採用
-        # <div class="rvw-item__rvw-comment" property="v:description">
-        #  <p>
-        #    <br>すごい煮干しラーメン凪 新宿ゴールデン街本館<br>スーパーゴールデン1600円（20食限定）を喰らう<br>大盛り無料です<br>スーパーゴールデンは、新宿ゴールデン街にちなんで、ココ本店だけの特別メニューだそうです<br>相方と歌舞伎町のtohoシネマズの映画館でドラゴンボール超ブロリー を観てきた<br>ブロリー 強すぎるね(^^)面白かったです<br>凪の煮干しラーメンも激ウマ<br>いったん麺ちゅるちゅる感に、レアチャーと大トロチャーシューのトロけ具合もうめえ<br>煮干しスープもさすが！と言うほど完成度が高い<br>さすが食べログラーメン百名店<br>と言うか<br>2日連チャンで、近場の食べログラーメン百名店のうちの2店舗、昨日の中華そば葉山さんと今日の凪<br>静岡では考えられん笑笑<br>ごちそうさまでした
-        #  </p>
-        # </div>
-        soup = BeautifulSoup(r.content, 'html.parser')
-        review = soup.find_all('div', class_='rvw-item__rvw-comment')  # reviewが含まれているタグの中身をすべて取得
-        if len(review) == 0:
-            review = ''
-        else:
-            review = review[0].p.text.strip()  # strip()は改行コードを除外する関数
-
-        # print('\t\t口コミテキスト：', review)
-        self.review = review
-
-        # データフレームの生成
-        self.make_df()
-        return
 
     def get_review_text(self, review_detail_url):
         """
@@ -276,10 +249,10 @@ class Tabelog:
                 print(f"{row['store_name']} - 평점: {row['score']}")
 
     def save_to_json(self, file_name):
-        df = pd.DataFrame(self.raw_data,
-                          columns=['store_name', 'store_name_id_num', 'score', 'ward', 'review_count', 'review', 'station'])
+        tabelog_frame = pd.DataFrame(raw_data,
+                          columns=['store_name', 'store_name_id_num', 'score', 'ward', 'review_count', 'review'])
         try:
-            df.to_json(file_name, orient='records', force_ascii=False)
+            tabelog_frame.to_json(file_name, orient='records', force_ascii=False)
             print("데이터를 JSON 파일로 저장했습니다.")
         except Exception as e:
             print(f"데이터를 저장하는 중에 오류가 발생했습니다: {e}")
@@ -307,21 +280,18 @@ class Tabelog:
 
 if __name__ == "__main__":
     # 크롤링할 역 이름 목록
-    stations = ['新宿駅', '渋谷駅', '恵比寿駅', '代官山駅']  # 예시 역 이름들
-    for station in stations:
-        print(f"{station}에 대한 크롤링을 시작합니다.")
-        tabelog_scraper = Tabelog(
-            base_url="https://tabelog.com/tokyo/R9/rstLst/RC21/",
-            test_mode=False, p_ward=station)
-        # 데이터가 DataFrame에 제대로 로드되었는지 확인하고, JSON 파일로 저장할 수 있습니다.
-        if not raw_data:
-            print(f"{station}: Array is empty")
-        else:
-            print(f"{station}: 데이터가 올바르게 DataFrame에 로드되었습니다.")
-            print(f"{station}: DataFrame 내용:")
-            print(raw_data)  # 데이터 확인
-            # JSON 파일로 저장
-            try:
-                tabelog_scraper.save_to_json(f'tabelog_data_{station}.json')  # 각 역별로 파일 저장
-            except Exception as e:
-                print(f"{station}: JSON 파일로 데이터를 저장하는 중에 오류가 발생했습니다: {e}")
+    tabelog_scraper = Tabelog(
+    base_url="https://tabelog.com/tokyo/R9/rstLst/RC21/",
+    test_mode=False)
+    # 데이터가 DataFrame에 제대로 로드되었는지 확인하고, JSON 파일로 저장할 수 있습니다.
+    if not raw_data:
+        print(f"Array is empty")
+    else:
+        print(f"데이터가 올바르게 DataFrame에 로드되었습니다.")
+        print(f"DataFrame 내용:")
+        print(raw_data)  # 데이터 확인
+        # JSON 파일로 저장
+        try:
+            tabelog_scraper.save_to_json(f'tabelog_data.json')  # 각 역별로 파일 저장
+        except Exception as e:
+            print(f"JSON 파일로 데이터를 저장하는 중에 오류가 발생했습니다: {e}")
